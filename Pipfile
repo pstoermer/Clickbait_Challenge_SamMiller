@@ -13,8 +13,9 @@ sklearn = "*"
 scikit-learn = "*"
 cmake = "*"
 sentencepiece = "*"
+spacy = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.11"
+python_version = "3.9"
