@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append('./src')
 from src import utils
 import argparse
@@ -40,7 +41,7 @@ def load_input(input_file: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame containing input features: uuid, postText, targetParagraphs and tags
     """
-    return utils.get_qa_features("data/train.jsonl")
+    return utils.get_qa_features(input_file)
 
 
 def use_cuda():
@@ -70,15 +71,14 @@ def predict(input_file: str):
     pipeline = initialize_qa_pipeline(MODEL_NAME)
 
     uuids = list(input_features["uuid"])
-    clickbaits = list(input_features['postText'])
-    contexts = list(input_features["targetParagraphs"])
+    spoiler_types = list(input_features["tags"])
     with ThreadPoolExecutor() as executor:
         spoilers = list(executor.map(utils.run_spoiler_generator,
                                      [pipeline] * len(input_features),
                                      input_features.to_dict('records')))
 
     for i in range(len(uuids)):
-        yield {"uuid": uuids[i], "spoiler": spoilers[i]}
+        yield {"uuid": uuids[i], "spoilerType": spoiler_types[i], "spoiler": spoilers[i]}
 
 
 def run(input_file, output_file):
@@ -91,7 +91,8 @@ def main():
     args = parse_args()
     run(args.input, args.output)
 
+
 if __name__ == "__main__":
     main()
 
-#%%
+# %%
