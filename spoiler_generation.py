@@ -1,6 +1,4 @@
-import sys
-
-sys.path.append('./src')
+#!/usr/bin/env python3
 from src import utils
 import argparse
 import json
@@ -10,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from transformers import QuestionAnsweringPipeline, AutoTokenizer, AutoModelForQuestionAnswering
 import torch
 
-MODEL_NAME = 'distilbert-base-cased-distilled-squad'
+MODEL_NAME = './model'
 
 
 def parse_args():

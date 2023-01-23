@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import json
 from typing import List, Union, Dict, Any, Tuple
 
@@ -11,9 +12,6 @@ import transformers
 nlp = spacy.load("en_core_web_sm")
 
 import nltk
-
-# nltk.download('wordnet')
-# nltk.download('stopwords')
 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -197,7 +195,6 @@ def get_qa_features(file_path: str):
     data['postText'] = data.postText.apply(lambda x: improve_question(x[0].strip()))
     data['tags'] = data.tags.apply(lambda x: x[0])
 
-    data['spoiler'] = data.apply(lambda x: '\n'.join(x['spoiler']) if x['tags'] != 'multi' else x, axis=1)
 
     return data[['uuid', 'postText', 'targetParagraphs', 'tags']]
 
@@ -230,7 +227,7 @@ def postprocess_spoilers(result: str) -> str:
 
 
 def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbait: str, context: str,
-                        max_loops: int = 5) -> Dict[str, Union[str, int]]:
+                        max_loops: int = 20) -> str:
     """
     Get passage spoilers (at least 5 words/tokens) by improving the question (clickbait) and using a question answering
     pipeline. If the returned answer contains less than 5 words/tokens, the sentence that contained the answer is removed
@@ -242,29 +239,24 @@ def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickb
         clickbait(str):      clickbait to extract spoiler for
         context:            Context for clickbait spoiler generation
         max_loops (int):    Maximum number of times to run the pipeline before returning None (to prevent infinite loop)
-                            default: 10
+                            default: 20
 
     Returns:
-        spoiler(Dict[str, Union[str, int]]):    Passage spoiler of format:
-                                                {
-                                                    'score': List[float]
-                                                    'start': start index in context (List[int]),
-                                                    'end': end index in context (List[int]),
-                                                    'answer': spoiler text containing max 5 words/tokens (List[str])
-                                                }
+        spoiler(str):    Passage spoiler
     """
-
     spoiler = None
-    while not spoiler or len(spoiler['answer'].split()) < 5 or max_loops == 0:
-        spoiler = pipeline(clickbait, context)
-        spoiler['answer'] = spoiler['answer'].strip(string.punctuation)
-        context = re.sub(rf'[^.?!]*(?<=[.?\s!]){spoiler["answer"]}(?=[\s.?!])[^.?!]*[.?!]', '', context, count=1)
+    while not spoiler or len(spoiler.split()) < 5 :
+        spoiler = pipeline(clickbait, context)['answer']
+        spoiler = spoiler.strip(string.punctuation)
+        context = re.sub(rf'[^.?!]*(?<=[.?\s!]){spoiler}(?=[\s.?!])[^.?!]*[.?!]', '', context, count=1)
         max_loops -= 1
+        if max_loops == 0:
+            return ''
     return spoiler
 
 
 def get_multi_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbait: str,
-                      context: str) -> Dict[str, List[Union[str, int]]]:
+                      context: str) -> List[str]:
     """
     Get multi spoilers (list of top 5 answers) by using a question answering pipeline.
     For each clickbait and context: get 5 answers
@@ -277,40 +269,22 @@ def get_multi_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbai
         context(str):            Context for clickbait spoiler generation
 
     Returns:
-        spoiler(Dict[str, List[Union[str,int]]]):   Multi spoiler of format:
-                                                    [
-                                                        {
-                                                            'score': List[float]
-                                                            'start': start index in context (List[int]),
-                                                            'end': end index in context (List[int]),
-                                                            'answer': spoiler text containing max 5 words/tokens (List[str])
-                                                        }, ...
-                                                    ]
+        spoiler(List[str]):   List of spoiler texts
     """
 
-    multi_spoilers: Dict[str, List[Union[str, int]]] = {
-        'score': [],
-        'start': [],
-        'end': [],
-        'answer': []
+    multi_spoilers: List[str] = []
 
-    }
+    for _ in range(5):
+        spoiler = pipeline(clickbait, context)['answer']
+        spoiler = spoiler.strip(string.punctuation)
+        context = context.replace([i for i in re.split(r'[.?!]', context) if spoiler in i][0], '')
 
-    for i in range(5):
-        spoiler = pipeline(clickbait, context)
-        spoiler['answer'] = spoiler['answer'].strip(string.punctuation)
-        context = context.replace([i for i in re.split(r'[.?!]', context) if spoiler['answer'] in i][0], '')
-
-        multi_spoilers['score'].append(spoiler['score'])
-        multi_spoilers['start'].append(spoiler['start'])
-        multi_spoilers['end'].append(spoiler['end'])
-        multi_spoilers['answer'].append(spoiler['answer'])
+        multi_spoilers.append(spoiler)
 
     return multi_spoilers
 
 
-def get_phrase_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbait: str, context: str) -> Dict[
-    str, Union[str, int]]:
+def get_phrase_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbait: str, context: str) -> str:
     """
     Get phrase spoilers (max 5 words/tokens) by using a question answering pipeline.
 
@@ -320,20 +294,14 @@ def get_phrase_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickba
         context:                                            Context for clickbait spoiler generation
 
     Returns:
-        spoiler(Dict[str, Union[str, int]]):    Phrase spoiler of format:
-                                                {
-                                                    'score': float
-                                                    'start': start index in context (int),
-                                                    'end': end index in context (int),
-                                                    'answer': spoiler text containing max 5 words/tokens (str)
-                                                }
+        spoiler(str): Phrase spoiler
     """
 
-    return pipeline(clickbait, context, postprocess=postprocess_phrase_spoiler)
+    return pipeline(clickbait, context, postprocess=postprocess_phrase_spoiler)['answer']
 
 
 def spoiler_generator(pipeline: transformers.QuestionAnsweringPipeline, clickbait: str, context: str,
-                      spoiler_type: str) -> Tuple[Union[str, int], Union[str, int], Union[str, int]]:
+                      spoiler_type: str) -> Union[List[str],str]:
     """
     Perform spoiler generation depending on the spoiler type.
 
@@ -361,11 +329,11 @@ def spoiler_generator(pipeline: transformers.QuestionAnsweringPipeline, clickbai
         spoiler = get_multi_spoiler(pipeline=pipeline, clickbait=clickbait, context=context)
     elif spoiler_type == 'phrase':
         spoiler = get_phrase_spoiler(pipeline=pipeline, clickbait=clickbait, context=context)
-    return spoiler['answer'], spoiler['start'], spoiler['end']
+    return spoiler
 
 
 def run_spoiler_generator(pipeline: transformers.QuestionAnsweringPipeline,
-                          row: pd.DataFrame) -> Tuple[Union[str, int], Union[str, int], Union[str, int]]:
+                          row: pd.DataFrame) -> Tuple[Union[List[str], str]]:
     """
     Run spoiler generator on dataset
 
