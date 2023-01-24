@@ -287,13 +287,13 @@ def get_multi_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbai
                     for spoiler_part in spoiler_parts:
                         context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler_part in i][0], '')
 
-                except IndexError:
+                except:
                     spoiler = ''
 
             else:
                 try:
                     context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler in i][0], '')
-                except IndexError:
+                except:
                     spoiler = ''
 
 
