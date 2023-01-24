@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-from time import time
 from src import utils
 import argparse
 import json
 from typing import Tuple
 import pandas as pd
-from concurrent.futures import ThreadPoolExecutor
 from transformers import QuestionAnsweringPipeline, AutoTokenizer, AutoModelForQuestionAnswering
 import torch
-from tqdm import tqdm
 
 MODEL_NAME = 'distilbert-base-cased-distilled-squad'
 
@@ -45,9 +42,7 @@ def load_input(input_file: str) -> pd.DataFrame:
 
 
 def get_device():
-    if not torch.cuda.is_available():
-        return -1
-    return torch.cuda.current_device()
+    return torch.cuda.current_device() if torch.cuda.is_available() else -1
 
 
 def initialize_qa_pipeline(model_name: str) -> Tuple[AutoModelForQuestionAnswering, AutoTokenizer]:
@@ -80,7 +75,7 @@ def predict(input_file: str):
 
 def run(input_file, output_file):
     with open(output_file, "w") as out:
-        for prediction in tqdm(predict(input_file)):
+        for prediction in predict(input_file):
             out.write(json.dumps(prediction) + "\n")
 
 
@@ -90,8 +85,6 @@ def main():
 
 
 if __name__ == "__main__":
-    start = time()
     main()
-    print(time()-start)
 
 # %%

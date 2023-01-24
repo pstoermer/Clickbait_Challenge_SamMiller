@@ -287,19 +287,18 @@ def get_multi_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbai
 
     else:
         for _ in range(5):
-            spoiler = pipeline(clickbait, context)['answer']
             try:
+                spoiler = pipeline(clickbait, context)['answer']
+
                 if len(nltk.sent_tokenize(spoiler)) > 1:
                     spoiler_parts = [s for s in nltk.sent_tokenize(spoiler) if s]
                     for spoiler_part in spoiler_parts:
                         context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler_part in i][0], '')
                 else:
                     context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler in i][0], '')
+                multi_spoilers.append(spoiler)
             except Exception:
-                spoiler = ''
-
-
-            multi_spoilers.append(spoiler)
+                multi_spoilers.append('')
 
     return multi_spoilers
 
