@@ -45,7 +45,7 @@ def load_input(input_file: str) -> pd.DataFrame:
 def use_cuda():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     n_gpu = torch.cuda.device_count()
-    torch.cuda.get_device_name(0)
+    return device
 
 
 def initialize_qa_pipeline(model_name: str) -> Tuple[AutoModelForQuestionAnswering, AutoTokenizer]:
@@ -58,10 +58,13 @@ def initialize_qa_pipeline(model_name: str) -> Tuple[AutoModelForQuestionAnsweri
         transformers.QuestionAnsweringPipeline: Pipeline with QuestionAnswering Tokenizer and Model
 
     """
+    device = use_cuda()
     model = AutoModelForQuestionAnswering.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
-
-    return QuestionAnsweringPipeline(model, tokenizer)
+    if device == 'cuda':
+        return QuestionAnsweringPipeline(model, tokenizer, device=0)
+    else:
+        return QuestionAnsweringPipeline(model, tokenizer)
 
 
 def predict(input_file: str):
