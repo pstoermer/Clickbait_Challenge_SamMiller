@@ -245,10 +245,19 @@ def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickb
         spoiler(str):    Passage spoiler
     """
     spoiler = None
+    pattern = re.compile(r'(\d+)(\.\s)([A-Za-z\s?]+)')
     while not spoiler or len(spoiler.split()) < 5 :
         spoiler = pipeline(clickbait, context)['answer']
-        spoiler = spoiler.strip(string.punctuation)
-        context = re.sub(rf'[^.?!]*(?<=[.?\s!]){spoiler}(?=[\s.?!])[^.?!]*[.?!]', '', context, count=1)
+        try:
+            if len(nltk.sent_tokenize(spoiler)) > 1:
+                spoiler_parts = [s for s in pattern.split(spoiler) if s]
+                for spoiler_part in spoiler_parts:
+                    context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler_part in i][0], '')
+            else:
+                try:
+                    context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler in i][0], '')
+        except:
+            spoiler = ''
         max_loops -= 1
         if max_loops == 0:
             return ''
@@ -272,7 +281,7 @@ def get_multi_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbai
         spoiler(List[str]):   List of spoiler texts
     """
     multi_spoilers: List[str] = []
-    pattern = r'(\d+)(\.\s)([A-Za-z\s?]+)'
+    pattern = re.compile(r'(\d+)(\.\s)([A-Za-z\s?]+)')
 
     match = re.findall(pattern, context)
     if len(match) >= 5:
@@ -281,20 +290,15 @@ def get_multi_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbai
     else:
         for _ in range(5):
             spoiler = pipeline(clickbait, context)['answer']
-            if len(nltk.sent_tokenize(spoiler)) > 1:
-                try:
+            try:
+                if len(nltk.sent_tokenize(spoiler)) > 1:
                     spoiler_parts = [s for s in pattern.split(spoiler) if s]
                     for spoiler_part in spoiler_parts:
                         context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler_part in i][0], '')
-
-                except:
-                    spoiler = ''
-
-            else:
-                try:
+                else:
                     context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler in i][0], '')
-                except:
-                    spoiler = ''
+            except Exception:
+                spoiler = ''
 
 
             multi_spoilers.append(spoiler)
