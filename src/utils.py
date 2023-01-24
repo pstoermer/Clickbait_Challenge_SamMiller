@@ -271,15 +271,33 @@ def get_multi_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbai
     Returns:
         spoiler(List[str]):   List of spoiler texts
     """
-
     multi_spoilers: List[str] = []
+    pattern = r'(\d+)(\.\s)([A-Za-z\s?]+)'
 
-    for _ in range(5):
-        spoiler = pipeline(clickbait, context)['answer']
-        spoiler = spoiler.strip(string.punctuation)
-        context = context.replace([i for i in re.split(r'[.?!]', context) if spoiler in i][0], '')
+    match = re.findall(pattern, context)
+    if len(match) >= 5:
+        multi_spoilers = [''.join(i).strip() for i in sorted(match, key=lambda x: int(x[0]))[:5]]
 
-        multi_spoilers.append(spoiler)
+    else:
+        for _ in range(5):
+            spoiler = pipeline(clickbait, context)['answer']
+            if len(nltk.sent_tokenize(spoiler)) > 1:
+                try:
+                    spoiler_parts = [s for s in pattern.split(spoiler) if s]
+                    for spoiler_part in spoiler_parts:
+                        context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler_part in i][0], '')
+
+                except IndexError:
+                    spoiler = ''
+
+            else:
+                try:
+                    context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler in i][0], '')
+                except IndexError:
+                    spoiler = ''
+
+
+            multi_spoilers.append(spoiler)
 
     return multi_spoilers
 

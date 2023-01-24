@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from time import time
 from src import utils
 import argparse
 import json
@@ -7,8 +8,9 @@ import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 from transformers import QuestionAnsweringPipeline, AutoTokenizer, AutoModelForQuestionAnswering
 import torch
+from tqdm import tqdm
 
-MODEL_NAME = './model'
+MODEL_NAME = 'distilbert-base-cased-distilled-squad'
 
 
 def parse_args():
@@ -42,10 +44,10 @@ def load_input(input_file: str) -> pd.DataFrame:
     return utils.get_qa_features(input_file)
 
 
-def use_cuda():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    n_gpu = torch.cuda.device_count()
-    return device
+def get_device():
+    if not torch.cuda.is_available():
+        return -1
+    return torch.cuda.current_device()
 
 
 def initialize_qa_pipeline(model_name: str) -> Tuple[AutoModelForQuestionAnswering, AutoTokenizer]:
@@ -58,13 +60,9 @@ def initialize_qa_pipeline(model_name: str) -> Tuple[AutoModelForQuestionAnsweri
         transformers.QuestionAnsweringPipeline: Pipeline with QuestionAnswering Tokenizer and Model
 
     """
-    device = use_cuda()
     model = AutoModelForQuestionAnswering.from_pretrained(model_name)
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
-    if device == 'cuda':
-        return QuestionAnsweringPipeline(model, tokenizer, device=0)
-    else:
-        return QuestionAnsweringPipeline(model, tokenizer)
+    return QuestionAnsweringPipeline(model, tokenizer, device=get_device())
 
 
 def predict(input_file: str):
@@ -84,7 +82,7 @@ def predict(input_file: str):
 
 def run(input_file, output_file):
     with open(output_file, "w") as out:
-        for prediction in predict(input_file):
+        for prediction in tqdm(predict(input_file)):
             out.write(json.dumps(prediction) + "\n")
 
 
@@ -94,6 +92,8 @@ def main():
 
 
 if __name__ == "__main__":
+    start = time()
     main()
+    print(time()-start)
 
 # %%
