@@ -245,7 +245,7 @@ def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickb
         spoiler(str):    Passage spoiler
     """
     spoiler = None
-    while not spoiler or len(spoiler.split()) < 5 :
+    while not spoiler or len(spoiler.split()) < 5:
         spoiler = pipeline(clickbait, context)['answer']
         try:
             if len(nltk.sent_tokenize(spoiler)) > 1:
@@ -253,9 +253,8 @@ def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickb
                 for spoiler_part in spoiler_parts:
                     context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler_part in i][0], '')
             else:
-                try:
-                    context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler in i][0], '')
-        except:
+                context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler in i][0], '')
+        except Exception:
             spoiler = ''
         max_loops -= 1
         if max_loops == 0:
