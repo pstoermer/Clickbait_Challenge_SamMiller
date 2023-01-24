@@ -6,6 +6,7 @@ from typing import Tuple
 import pandas as pd
 from transformers import QuestionAnsweringPipeline, AutoTokenizer, AutoModelForQuestionAnswering
 import torch
+from tqdm import tqdm
 
 MODEL_NAME = 'distilbert-base-cased-distilled-squad'
 
@@ -66,8 +67,8 @@ def predict(input_file: str):
 
     uuids = list(input_features["uuid"])
     spoiler_types = list(input_features["tags"])
-    spoilers = list(map(lambda x: utils.spoiler_generator(pipeline, x['postText'], x['targetParagraphs'], x['tags']),
-                        input_features.to_dict('records')))
+    spoilers = list(tqdm(map(lambda x: utils.spoiler_generator(pipeline, x['postText'], x['targetParagraphs'], x['tags']),
+                        input_features.to_dict('records'))))
 
     for i in range(len(uuids)):
         yield {"uuid": uuids[i], "spoilerType": spoiler_types[i], "spoiler": spoilers[i]}
