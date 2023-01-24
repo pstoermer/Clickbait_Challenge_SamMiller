@@ -71,10 +71,8 @@ def predict(input_file: str):
 
     uuids = list(input_features["uuid"])
     spoiler_types = list(input_features["tags"])
-    with ThreadPoolExecutor() as executor:
-        spoilers = list(executor.map(utils.run_spoiler_generator,
-                                     [pipeline] * len(input_features),
-                                     input_features.to_dict('records')))
+    spoilers = list(map(lambda x: utils.spoiler_generator(pipeline, x['postText'], x['targetParagraphs'], x['tags']),
+                        input_features.to_dict('records')))
 
     for i in range(len(uuids)):
         yield {"uuid": uuids[i], "spoilerType": spoiler_types[i], "spoiler": spoilers[i]}
