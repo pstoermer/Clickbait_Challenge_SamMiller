@@ -245,12 +245,11 @@ def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickb
         spoiler(str):    Passage spoiler
     """
     spoiler = None
-    pattern = re.compile(r'(\d+)(\.\s)([A-Za-z\s?]+)')
     while not spoiler or len(spoiler.split()) < 5 :
         spoiler = pipeline(clickbait, context)['answer']
         try:
             if len(nltk.sent_tokenize(spoiler)) > 1:
-                spoiler_parts = [s for s in pattern.split(spoiler) if s]
+                spoiler_parts = [s for s in nltk.sent_tokenize(spoiler) if s]
                 for spoiler_part in spoiler_parts:
                     context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler_part in i][0], '')
             else:
@@ -292,7 +291,7 @@ def get_multi_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbai
             spoiler = pipeline(clickbait, context)['answer']
             try:
                 if len(nltk.sent_tokenize(spoiler)) > 1:
-                    spoiler_parts = [s for s in pattern.split(spoiler) if s]
+                    spoiler_parts = [s for s in nltk.sent_tokenize(spoiler) if s]
                     for spoiler_part in spoiler_parts:
                         context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler_part in i][0], '')
                 else:
