@@ -97,12 +97,13 @@ def predict(df):
         
         # Store predictions and true labels
         predictions.append(logits)
-        
+        decoded_pred = []
         for z in predictions[0]:
             label = np.where(z == z.max())
             decoded_label = decoding_array[label[0][0]]
+            decoded_pred.append(decoded_label)
     for i in range(len(df)):
-        yield {'uuid': uuids[i], 'spoilerType': decoded_label}
+        yield {'uuid': uuids[i], 'spoilerType': decoded_pred[i]}
 
 
 def run_baseline(input_file, output_file):
