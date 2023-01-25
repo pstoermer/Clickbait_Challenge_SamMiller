@@ -96,14 +96,15 @@ def predict(df):
         logits = logits.detach().cpu().numpy()
         
         # Store predictions and true labels
-        predictions.append(logits)
-        decoded_pred = []
-        for z in predictions[0]:
-            label = np.where(z == z.max())
-            decoded_label = decoding_array[label[0][0]]
-            decoded_pred.append(decoded_label)
-    for i in range(len(df)):
-        yield {'uuid': uuids[i], 'spoilerType': decoded_pred[i]}
+        for i in logits:
+            predictions.append(i)
+    decoded_pred = []
+    for z in predictions:
+        label = np.where(z == z.max())
+        decoded_label = decoding_array[label[0][0]]
+        decoded_pred.append(decoded_label)
+    for i,z in zip(uuids,decoded_pred):
+        yield {'uuid': i, 'spoilerType': z}
 
 
 def run_baseline(input_file, output_file):
