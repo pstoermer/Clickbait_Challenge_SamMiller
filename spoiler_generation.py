@@ -8,7 +8,7 @@ from transformers import QuestionAnsweringPipeline, AutoTokenizer, AutoModelForQ
 import torch
 from tqdm import tqdm
 
-MODEL_NAME = 'distilbert-base-cased-distilled-squad'
+MODEL_NAME = './model'
 
 
 def parse_args():
