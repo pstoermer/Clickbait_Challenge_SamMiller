@@ -226,11 +226,10 @@ def postprocess_spoilers(result: str) -> str:
     return result.strip(string.punctuation)
 
 
-def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbait: str, context: str,
-                        max_loops: int = 20) -> str:
+def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickbait: str, context: str) -> str:
     """
-    Get passage spoilers (at least 5 words/tokens) by improving the question (clickbait) and using a question answering
-    pipeline. If the returned answer contains less than 5 words/tokens, the sentence that contained the answer is removed
+    Get passage spoilers (at least 5 words/tokens) using a question answering pipeline.
+    If the returned answer contains less than 5 words/tokens, the sentence that contained the answer is removed
     and the pipeline is run again.
 
     Args:
@@ -238,40 +237,20 @@ def get_passage_spoiler(pipeline: transformers.QuestionAnsweringPipeline, clickb
                                                             from context
         clickbait(str):      clickbait to extract spoiler for
         context:            Context for clickbait spoiler generation
-        max_loops (int):    Maximum number of times to run the pipeline before returning None (to prevent infinite loop)
-                            default: 20
 
     Returns:
         spoiler(str):    Passage spoiler
     """
-    spoiler = None
-    while not spoiler or len(spoiler.split()) < 5:
+    spoiler = pipeline(improve_question(clickbait), context)['answer']
+    if len(spoiler.split())<5:
         try:
-            spoiler = pipeline(clickbait, context)['answer']
             if len(nltk.sent_tokenize(spoiler)) > 1:
                 spoiler_parts = [s for s in nltk.sent_tokenize(spoiler) if s]
-                for spoiler_part in spoiler_parts:
-                    context = (
-                        context.replace(spoiler_part, '')
-                        if len(nltk.sent_tokenize(context)) <= 2
-                        else context.replace(
-                            [
-                                i
-                                for i in nltk.sent_tokenize(context)
-                                if spoiler_part in i
-                            ][0],
-                            '',
-                        )
-                    )
-            elif len(nltk.sent_tokenize(context)) <= 2:
-                context = context.replace(spoiler, '')
+                spoiler = ' '.join(
+                    [i for i in nltk.sent_tokenize(context) for spoiler_part in spoiler_parts if spoiler_part in i])
             else:
-                context = context.replace([i for i in nltk.sent_tokenize(context) if spoiler in i][0], '')
-
-        except Exception:
-            spoiler = ''
-        max_loops -= 1
-        if max_loops == 0:
+                spoiler = [i for i in nltk.sent_tokenize(context) if spoiler in i][0]
+        except:
             return ''
     return spoiler
 
