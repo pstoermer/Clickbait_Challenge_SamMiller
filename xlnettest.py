@@ -94,7 +94,7 @@ def predict(df):
                 0 : "multi"
                 }
         for z in predictions:
-                label = np.where(z == z.min())[0][0]
+                label = np.where(z == z.max())[0][0]
                 decoded_label = decoding_array[label]
                 decoded_pred.append(decoded_label)
         for i,z in zip(uuids,decoded_pred):
