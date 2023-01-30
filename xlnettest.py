@@ -97,8 +97,8 @@ def predict(df):
                 label = np.where(z == z.max())[0][0]
                 decoded_label = decoding_array[label]
                 decoded_pred.append(decoded_label)
-        for i,z in zip(uuids,decoded_pred):
-            yield {'uuid': i, 'spoilerType': z}
+    for i,z in zip(uuids,decoded_pred):
+        yield {'uuid': i, 'spoilerType': z}
 
 def run_baseline(input_file, output_file):
     with open(output_file, 'w') as out:
